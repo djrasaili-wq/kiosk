@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#090b10" />
+  <title>Web Kiosk Launcher</title>
+  <style>
+    :root { color-scheme: dark; --bg:#090b10; --panel:#171b24; --panel2:#0f131a; --text:#fff; --muted:#aeb7c7; --focus:#58a6ff; --warning:#ffd479; }
+    * { box-sizing: border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input { font:inherit; }
+    .hidden { display:none!important; }
+    #setup { min-height:100%; display:grid; place-items:center; padding:clamp(24px,5vw,96px); }
+    .card { width:min(1100px,100%); padding:clamp(30px,5vw,64px); border-radius:24px; background:var(--panel); box-shadow:0 24px 80px rgba(0,0,0,.4); }
+    h1 { margin:0; font-size:clamp(42px,6vw,76px); line-height:1; }
+    .subtitle { margin:18px 0 42px; color:var(--muted); font-size:clamp(20px,2.5vw,30px); }
+    label { display:block; margin-bottom:12px; font-size:clamp(20px,2vw,27px); font-weight:700; }
+    input { width:100%; min-height:76px; padding:0 24px; border:3px solid #4b5568; border-radius:14px; outline:none; background:var(--panel2); color:var(--text); font-size:clamp(21px,2.2vw,29px); }
+    input:focus { border-color:var(--focus); box-shadow:0 0 0 5px rgba(88,166,255,.22); }
+    .message { min-height:30px; margin-top:14px; color:var(--warning); font-size:20px; }
+    .actions { display:flex; flex-wrap:wrap; gap:20px; margin-top:24px; }
+    button { min-width:230px; min-height:68px; padding:14px 30px; border:4px solid transparent; border-radius:13px; cursor:pointer; font-size:clamp(20px,2vw,26px); font-weight:800; }
+    button:focus { outline:none; border-color:var(--focus); transform:scale(1.035); }
+    .primary { background:#fff; color:#090b10; }
+    .secondary { background:#2a3140; color:#fff; }
+    .help { margin:36px 0 0; color:#929cad; font-size:18px; line-height:1.5; }
+    #kiosk { position:fixed; inset:0; background:#000; }
+    #viewer { width:100%; height:100%; border:0; background:#000; }
+    #toolbar { position:fixed; z-index:10; top:18px; right:18px; display:flex; gap:10px; opacity:0; transition:opacity .2s; }
+    #kiosk:hover #toolbar, #toolbar:focus-within { opacity:1; }
+    #toolbar button { min-width:auto; min-height:48px; padding:8px 16px; border-width:3px; background:rgba(12,15,21,.88); color:#fff; font-size:16px; backdrop-filter:blur(8px); }
+    #loading { position:fixed; inset:0; z-index:5; display:grid; place-items:center; pointer-events:none; background:#090b10; font-size:28px; }
+    @media (max-width:700px) { .actions { flex-direction:column; } button { width:100%; } }
+  </style>
+</head>
+<body>
+  <main id="setup">
+    <section class="card">
+      <h1>Web Kiosk</h1>
+      <p class="subtitle">Enter a webpage and display it full-screen.</p>
+      <form id="urlForm">
+        <label for="urlInput">Website URL</label>
+        <input id="urlInput" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com/signage" autofocus />
+        <div id="message" class="message" aria-live="polite"></div>
+        <div class="actions">
+          <button class="primary" type="submit">Launch Kiosk</button>
+          <button class="secondary" id="clearButton" type="button">Clear Saved URL</button>
+        </div>
+      </form>
+      <p class="help">The address is saved on this device. Press Escape or use the hidden toolbar at the top-right to return to settings. Some websites block iframe display; use “Open Directly” when that happens.</p>
+    </section>
+  </main>
+
+  <section id="kiosk" class="hidden" aria-label="Kiosk display">
+    <div id="toolbar">
+      <button id="reloadButton" type="button">Reload</button>
+      <button id="directButton" type="button">Open Directly</button>
+      <button id="settingsButton" type="button">Settings</button>
+    </div>
+    <div id="loading">Loading webpage…</div>
+    <iframe id="viewer" title="Kiosk webpage" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </section>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'web-kiosk-url';
+      const setup = document.getElementById('setup');
+      const kiosk = document.getElementById('kiosk');
+      const form = document.getElementById('urlForm');
+      const input = document.getElementById('urlInput');
+      const message = document.getElementById('message');
+      const viewer = document.getElementById('viewer');
+      const loading = document.getElementById('loading');
+      const clearButton = document.getElementById('clearButton');
+      const reloadButton = document.getElementById('reloadButton');
+      const directButton = document.getElementById('directButton');
+      const settingsButton = document.getElementById('settingsButton');
+      let activeUrl = '';
+
+      function normalizeUrl(value) {
+        const trimmed = value.trim();
+        if (!trimmed) return '';
+        return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+      }
+
+      function validUrl(value) {
+        try {
+          const parsed = new URL(value);
+          return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+        } catch { return false; }
+      }
+
+      async function enterFullscreen() {
+        try {
+          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          }
+        } catch {}
+      }
+
+      function launch(url) {
+        activeUrl = url;
+        localStorage.setItem(STORAGE_KEY, url);
+        input.value = url;
+        setup.classList.add('hidden');
+        kiosk.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        viewer.src = url;
+        enterFullscreen();
+      }
+
+      function showSettings() {
+        kiosk.classList.add('hidden');
+        setup.classList.remove('hidden');
+        viewer.src = 'about:blank';
+        message.textContent = '';
+        input.focus();
+        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      }
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const url = normalizeUrl(input.value);
+        if (!validUrl(url)) {
+          message.textContent = 'Enter a valid URL, such as https://example.com.';
+          input.focus();
+          return;
+        }
+        message.textContent = '';
+        launch(url);
+      });
+
+      clearButton.addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        activeUrl = '';
+        input.value = '';
+        message.textContent = 'Saved URL cleared.';
+        input.focus();
+      });
+
+      reloadButton.addEventListener('click', () => {
+        if (!activeUrl) return;
+        loading.classList.remove('hidden');
+        viewer.src = activeUrl;
+      });
+
+      directButton.addEventListener('click', () => { if (activeUrl) window.location.assign(activeUrl); });
+      settingsButton.addEventListener('click', showSettings);
+      viewer.addEventListener('load', () => loading.classList.add('hidden'));
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !kiosk.classList.contains('hidden')) showSettings();
+      });
+
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && validUrl(saved)) input.value = saved;
+    })();
+  </script>
+</body>
+</html>
