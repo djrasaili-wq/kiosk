@@ -7,199 +7,33 @@
   <title>Web Kiosk Launcher</title>
   <style>
     :root { color-scheme: dark; --bg:#090b10; --panel:#171b24; --panel2:#0f131a; --text:#fff; --muted:#aeb7c7; --focus:#58a6ff; --warning:#ffd479; }
-    * { box-sizing: border-box; }
-    html,body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-    button,input { font:inherit; }
-    .hidden { display:none!important; }
-    #setup { min-height:100%; display:grid; place-items:center; padding:clamp(24px,5vw,96px); }
-    .card { width:min(1100px,100%); padding:clamp(30px,5vw,64px); border-radius:24px; background:var(--panel); box-shadow:0 24px 80px rgba(0,0,0,.4); }
-    h1 { margin:0; font-size:clamp(42px,6vw,76px); line-height:1; }
-    .subtitle { margin:18px 0 42px; color:var(--muted); font-size:clamp(20px,2.5vw,30px); }
-    label { display:block; margin-bottom:12px; font-size:clamp(20px,2vw,27px); font-weight:700; }
-    input { width:100%; min-height:76px; padding:0 24px; border:3px solid #4b5568; border-radius:14px; outline:none; background:var(--panel2); color:var(--text); font-size:clamp(21px,2.2vw,29px); }
-    input:focus { border-color:var(--focus); box-shadow:0 0 0 5px rgba(88,166,255,.22); }
-    .message { min-height:30px; margin-top:14px; color:var(--warning); font-size:20px; }
-    .actions { display:flex; flex-wrap:wrap; gap:20px; margin-top:24px; }
-    button { min-width:230px; min-height:68px; padding:14px 30px; border:4px solid transparent; border-radius:13px; cursor:pointer; font-size:clamp(20px,2vw,26px); font-weight:800; }
-    button:focus { outline:none; border-color:var(--focus); transform:scale(1.035); }
-    .primary { background:#fff; color:#090b10; }
-    .secondary { background:#2a3140; color:#fff; }
-    .help { margin:36px 0 0; color:#929cad; font-size:18px; line-height:1.5; }
-    #kiosk { position:fixed; inset:0; background:#000; }
-    #viewer { width:100%; height:100%; border:0; background:#000; }
-    #toolbar { position:fixed; z-index:10; top:18px; right:18px; display:flex; gap:10px; opacity:0; transition:opacity .2s; }
-    #kiosk:hover #toolbar, #toolbar:focus-within { opacity:1; }
-    #toolbar button { min-width:auto; min-height:48px; padding:8px 16px; border-width:3px; background:rgba(12,15,21,.88); color:#fff; font-size:16px; backdrop-filter:blur(8px); }
-    #loading { position:fixed; inset:0; z-index:5; display:grid; place-items:center; pointer-events:none; background:#090b10; font-size:28px; }
-    #keepAwakeStatus { position:fixed; left:14px; bottom:10px; z-index:11; padding:6px 10px; border-radius:8px; background:rgba(0,0,0,.55); color:#b7c0cf; font-size:13px; opacity:.35; }
-    #activityCanvas { position:fixed; width:1px; height:1px; left:-10px; top:-10px; opacity:.001; pointer-events:none; }
-    @media (max-width:700px) { .actions { flex-direction:column; } button { width:100%; } }
+    *{box-sizing:border-box} html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif} button,input{font:inherit}.hidden{display:none!important}
+    #setup{min-height:100%;display:grid;place-items:center;padding:5vw}.card{width:min(1100px,100%);padding:clamp(30px,5vw,64px);border-radius:24px;background:var(--panel)}
+    h1{margin:0;font-size:clamp(42px,6vw,76px)}.subtitle{margin:18px 0 42px;color:var(--muted);font-size:clamp(20px,2.5vw,30px)}label{display:block;margin-bottom:12px;font-size:clamp(20px,2vw,27px);font-weight:700}
+    input{width:100%;min-height:76px;padding:0 24px;border:3px solid #4b5568;border-radius:14px;outline:none;background:var(--panel2);color:var(--text);font-size:clamp(21px,2.2vw,29px)}input:focus{border-color:var(--focus);box-shadow:0 0 0 5px rgba(88,166,255,.22)}
+    .message{min-height:30px;margin-top:14px;color:var(--warning);font-size:20px}.actions{display:flex;flex-wrap:wrap;gap:20px;margin-top:24px}button{min-width:230px;min-height:68px;padding:14px 30px;border:4px solid transparent;border-radius:13px;cursor:pointer;font-size:clamp(20px,2vw,26px);font-weight:800}button:focus{outline:none;border-color:var(--focus);transform:scale(1.035)}.primary{background:#fff;color:#090b10}.secondary{background:#2a3140;color:#fff}.help{margin:36px 0 0;color:#929cad;font-size:18px;line-height:1.5}
+    #kiosk{position:fixed;inset:0;overflow:hidden;background:#000}#viewer{width:100%;height:100%;border:0;background:#000}#toolbar{position:fixed;z-index:50;top:18px;right:18px;display:flex;gap:10px;opacity:0;transition:opacity .2s}#kiosk:hover #toolbar,#toolbar:focus-within{opacity:1}#toolbar button{min-width:auto;min-height:48px;padding:8px 16px;border-width:3px;background:rgba(12,15,21,.88);color:#fff;font-size:16px}#loading{position:fixed;inset:0;z-index:20;display:grid;place-items:center;pointer-events:none;background:#090b10;font-size:28px}
+    #keepAlivePng{position:fixed;z-index:1;top:1px;left:0;width:2px;height:2px;opacity:.001;pointer-events:none;will-change:transform;animation:movePng 4s linear infinite}@keyframes movePng{from{transform:translate3d(-4px,0,0)}to{transform:translate3d(calc(100vw + 4px),0,0)}}
+    #keepAlivePixel{position:fixed;z-index:1;bottom:1px;left:0;width:1px;height:1px;opacity:.001;background:rgba(255,255,255,.01);pointer-events:none;will-change:transform;animation:movePixel 7s linear infinite alternate}@keyframes movePixel{from{transform:translate3d(0,0,0)}to{transform:translate3d(calc(100vw - 1px),0,0)}}
+    @media(max-width:700px){.actions{flex-direction:column}button{width:100%}}
   </style>
 </head>
 <body>
-  <main id="setup">
-    <section class="card">
-      <h1>Web Kiosk</h1>
-      <p class="subtitle">Enter a webpage and display it full-screen.</p>
-      <form id="urlForm">
-        <label for="urlInput">Website URL</label>
-        <input id="urlInput" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com/signage" autofocus />
-        <div id="message" class="message" aria-live="polite"></div>
-        <div class="actions">
-          <button class="primary" type="submit">Launch Kiosk</button>
-          <button class="secondary" id="clearButton" type="button">Clear Saved URL</button>
-        </div>
-      </form>
-      <p class="help">The address is saved on this device. Press Escape or use the hidden toolbar at the top-right to return to settings. Some websites block iframe display; use “Open Directly” when that happens.</p>
-    </section>
-  </main>
-
-  <section id="kiosk" class="hidden" aria-label="Kiosk display">
-    <div id="toolbar">
-      <button id="reloadButton" type="button">Reload</button>
-      <button id="directButton" type="button">Open Directly</button>
-      <button id="settingsButton" type="button">Settings</button>
-    </div>
-    <div id="loading">Loading webpage…</div>
-    <iframe id="viewer" title="Kiosk webpage" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
-    <canvas id="activityCanvas" width="2" height="2" aria-hidden="true"></canvas>
-    <div id="keepAwakeStatus">Keep-awake: starting…</div>
-  </section>
-
+  <main id="setup"><section class="card"><h1>Web Kiosk</h1><p class="subtitle">Enter a webpage and display it full-screen.</p><form id="urlForm"><label for="urlInput">Website URL</label><input id="urlInput" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com/signage" autofocus><div id="message" class="message" aria-live="polite"></div><div class="actions"><button class="primary" type="submit">Launch Kiosk</button><button class="secondary" id="clearButton" type="button">Clear Saved URL</button></div></form><p class="help">The URL is saved on this Fire Stick. The kiosk runs continuous invisible pixel movement and a one-pixel page scroll while open.</p></section></main>
+  <section id="kiosk" class="hidden" aria-label="Kiosk display"><div id="toolbar"><button id="reloadButton" type="button">Reload</button><button id="directButton" type="button">Open Directly</button><button id="settingsButton" type="button">Settings</button></div><div id="loading">Loading webpage…</div><iframe id="viewer" title="Kiosk webpage" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe><img id="keepAlivePng" alt="" aria-hidden="true" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="><div id="keepAlivePixel" aria-hidden="true"></div></section>
   <script>
-    (() => {
-      const STORAGE_KEY = 'web-kiosk-url';
-      const setup = document.getElementById('setup');
-      const kiosk = document.getElementById('kiosk');
-      const form = document.getElementById('urlForm');
-      const input = document.getElementById('urlInput');
-      const message = document.getElementById('message');
-      const viewer = document.getElementById('viewer');
-      const loading = document.getElementById('loading');
-      const clearButton = document.getElementById('clearButton');
-      const reloadButton = document.getElementById('reloadButton');
-      const directButton = document.getElementById('directButton');
-      const settingsButton = document.getElementById('settingsButton');
-      const keepAwakeStatus = document.getElementById('keepAwakeStatus');
-      const activityCanvas = document.getElementById('activityCanvas');
-      const activityContext = activityCanvas.getContext('2d');
-      let activeUrl = '';
-      let wakeLock = null;
-      let heartbeatTimer = null;
-      let heartbeatFrame = 0;
-
-      function normalizeUrl(value) {
-        const trimmed = value.trim();
-        if (!trimmed) return '';
-        return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-      }
-
-      function validUrl(value) {
-        try {
-          const parsed = new URL(value);
-          return parsed.protocol === 'https:' || parsed.protocol === 'http:';
-        } catch { return false; }
-      }
-
-      function startHeartbeat() {
-        if (heartbeatTimer) return;
-        heartbeatTimer = setInterval(() => {
-          heartbeatFrame = (heartbeatFrame + 1) % 255;
-          if (activityContext) {
-            activityContext.fillStyle = `rgb(${heartbeatFrame},0,0)`;
-            activityContext.fillRect(0, 0, 2, 2);
-          }
-          document.documentElement.dataset.heartbeat = String(Date.now());
-        }, 15000);
-      }
-
-      async function requestWakeLock() {
-        startHeartbeat();
-        if (!('wakeLock' in navigator)) {
-          keepAwakeStatus.textContent = 'Keep-awake: browser API unavailable';
-          return;
-        }
-        try {
-          wakeLock = await navigator.wakeLock.request('screen');
-          keepAwakeStatus.textContent = 'Keep-awake: active';
-          wakeLock.addEventListener('release', () => {
-            keepAwakeStatus.textContent = 'Keep-awake: released';
-          });
-        } catch (error) {
-          keepAwakeStatus.textContent = 'Keep-awake: blocked by browser';
-        }
-      }
-
-      async function enterFullscreen() {
-        try {
-          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-            await document.documentElement.requestFullscreen();
-          }
-        } catch {}
-      }
-
-      function launch(url) {
-        activeUrl = url;
-        localStorage.setItem(STORAGE_KEY, url);
-        input.value = url;
-        setup.classList.add('hidden');
-        kiosk.classList.remove('hidden');
-        loading.classList.remove('hidden');
-        viewer.src = url;
-        enterFullscreen();
-        requestWakeLock();
-      }
-
-      function showSettings() {
-        kiosk.classList.add('hidden');
-        setup.classList.remove('hidden');
-        viewer.src = 'about:blank';
-        message.textContent = '';
-        input.focus();
-        if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
-        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
-      }
-
-      form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const url = normalizeUrl(input.value);
-        if (!validUrl(url)) {
-          message.textContent = 'Enter a valid URL, such as https://example.com.';
-          input.focus();
-          return;
-        }
-        message.textContent = '';
-        launch(url);
-      });
-
-      clearButton.addEventListener('click', () => {
-        localStorage.removeItem(STORAGE_KEY);
-        activeUrl = '';
-        input.value = '';
-        message.textContent = 'Saved URL cleared.';
-        input.focus();
-      });
-
-      reloadButton.addEventListener('click', () => {
-        if (!activeUrl) return;
-        loading.classList.remove('hidden');
-        viewer.src = activeUrl;
-      });
-
-      directButton.addEventListener('click', () => { if (activeUrl) window.location.assign(activeUrl); });
-      settingsButton.addEventListener('click', showSettings);
-      viewer.addEventListener('load', () => loading.classList.add('hidden'));
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && !kiosk.classList.contains('hidden')) {
-          requestWakeLock();
-        }
-      });
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !kiosk.classList.contains('hidden')) showSettings();
-      });
-
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && validUrl(saved)) input.value = saved;
+    (()=>{const STORAGE_KEY='web-kiosk-url',setup=document.getElementById('setup'),kiosk=document.getElementById('kiosk'),form=document.getElementById('urlForm'),input=document.getElementById('urlInput'),message=document.getElementById('message'),viewer=document.getElementById('viewer'),loading=document.getElementById('loading'),clearButton=document.getElementById('clearButton'),reloadButton=document.getElementById('reloadButton'),directButton=document.getElementById('directButton'),settingsButton=document.getElementById('settingsButton');let activeUrl='',pixelScrollTimer=null,renderLoopId=null,scrollDirection=1;
+      function normalizeUrl(v){const t=v.trim();if(!t)return'';return/^https?:\/\//i.test(t)?t:`https://${t}`}
+      function validUrl(v){try{const p=new URL(v);return p.protocol==='https:'||p.protocol==='http:'}catch{return false}}
+      async function enterFullscreen(){try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen()}catch{}}
+      function startPixelScroll(){stopPixelScroll();pixelScrollTimer=setInterval(()=>{scrollDirection*=-1;window.scrollTo(0,scrollDirection>0?1:0)},15000)}
+      function stopPixelScroll(){if(pixelScrollTimer!==null){clearInterval(pixelScrollTimer);pixelScrollTimer=null}window.scrollTo(0,0)}
+      function startRenderHeartbeat(){stopRenderHeartbeat();const tick=()=>{document.documentElement.dataset.kioskTick=String(Date.now()%100000);renderLoopId=requestAnimationFrame(tick)};renderLoopId=requestAnimationFrame(tick)}
+      function stopRenderHeartbeat(){if(renderLoopId!==null){cancelAnimationFrame(renderLoopId);renderLoopId=null}}
+      function launch(url){activeUrl=url;localStorage.setItem(STORAGE_KEY,url);input.value=url;setup.classList.add('hidden');kiosk.classList.remove('hidden');loading.classList.remove('hidden');viewer.src=url;startPixelScroll();startRenderHeartbeat();enterFullscreen()}
+      function showSettings(){kiosk.classList.add('hidden');setup.classList.remove('hidden');viewer.src='about:blank';message.textContent='';stopPixelScroll();stopRenderHeartbeat();input.focus();if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{})}
+      form.addEventListener('submit',e=>{e.preventDefault();const url=normalizeUrl(input.value);if(!validUrl(url)){message.textContent='Enter a valid URL, such as https://example.com.';input.focus();return}message.textContent='';launch(url)});
+      clearButton.addEventListener('click',()=>{localStorage.removeItem(STORAGE_KEY);activeUrl='';input.value='';message.textContent='Saved URL cleared.';input.focus()});reloadButton.addEventListener('click',()=>{if(!activeUrl)return;loading.classList.remove('hidden');viewer.src=activeUrl});directButton.addEventListener('click',()=>{if(activeUrl)window.location.assign(activeUrl)});settingsButton.addEventListener('click',showSettings);viewer.addEventListener('load',()=>loading.classList.add('hidden'));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!kiosk.classList.contains('hidden'))showSettings()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!kiosk.classList.contains('hidden')){startPixelScroll();startRenderHeartbeat()}});const saved=localStorage.getItem(STORAGE_KEY);if(saved&&validUrl(saved))input.value=saved;
     })();
   </script>
 </body>
